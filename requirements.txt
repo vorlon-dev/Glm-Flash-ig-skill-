@@ -1,0 +1,14 @@
+# Core (required)
+python-dotenv>=1.0
+requests>=2.31
+httpx>=0.27
+Pillow>=10.0
+fastapi>=0.110
+uvicorn>=0.29
+pydantic>=2.6
+
+# Instagram session mode (username/password) — optional but recommended
+instagrapi>=2.0
+
+# Optional: only if you want whisper-powered auto subtitles
+# openai-whisper

@@ -1,0 +1,160 @@
+{
+  "_comment": "Offline hooks / CTAs / hashtag sets by niche. The agent or GLM builds on these; hashtag_sets rotate so consecutive posts never repeat a block.",
+  "niches": {
+    "general": {
+      "hooks": [
+        "POV: you finally started and everyone suddenly has advice",
+        "Nobody tells beginners this:",
+        "Stop scrolling — this saves you 6 months",
+        "3 mistakes quietly killing your progress",
+        "Do this for 7 days and thank me later",
+        "The truth about {topic} nobody posts",
+        "I wish someone showed me this earlier"
+      ],
+      "ctas": [
+        "Which one are you guilty of? 👇",
+        "Comment 'GO' and I'll send the full list",
+        "Save this before it disappears from your feed",
+        "Tag someone who needs to see this",
+        "Follow for the part 2 everyone asked for"
+      ],
+      "hashtag_sets": [
+        ["#explorepage", "#viralreels", "#trending", "#reelsindia", "#contentcreator", "#dailypost", "#growthtips", "#instagrowth", "#creatoreconomy", "#explore"],
+        ["#viral", "#reelitfeelit", "#instadaily", "#motivation", "#tipsandtricks", "#howto", "#learnongram", "#reelsgrowth", "#fyp", "#discover"],
+        ["#foryou", "#instareels", "#socialmediatips", "#creatorlife", "#newpost", "#dailycontent", "#reelstrending", "#growyouraccount", "#instagramtips", "#viralpost"]
+      ]
+    },
+    "fitness": {
+      "hooks": [
+        "Your workout isn't the problem. Your recovery is.",
+        "I did this for 30 days and my body changed",
+        "Stop doing cardio like this (you're wasting time)",
+        "POV: leg day but you actually can't walk after",
+        "The 3 exercises that fixed my posture"
+      ],
+      "ctas": [
+        "Drop a 💪 if you're doing this today",
+        "Comment 'PLAN' for the full week routine",
+        "Save this for your next gym session",
+        "Tag your gym partner who skips leg day"
+      ],
+      "hashtag_sets": [
+        ["#fitness", "#gymmotivation", "#workout", "#fitindia", "#gymlife", "#fitnessreels", "#transformation", "#homeworkout", "#strengthtraining", "#fitfam"],
+        ["#gymreels", "#fitnessjourney", "#bodybuilding", "#fatloss", "#musclegain", "#fitnesstips", "#workoutroutine", "#healthylifestyle", "#gymindia", "#noexcuses"]
+      ]
+    },
+    "food": {
+      "hooks": [
+        "This 12-second recipe broke my comment section",
+        "POV: midnight cravings but 4 ingredients only",
+        "Street food but I make it at home for ₹80",
+        "Stop ordering this. It takes 6 minutes.",
+        "The sauce that fixes everything"
+      ],
+      "ctas": [
+        "Recipe in comments before it gets deleted 👀",
+        "Comment your city and I'll pick the next dish",
+        "Save this for your 2am hunger",
+        "Tag the friend who always says 'order karte hain'"
+      ],
+      "hashtag_sets": [
+        ["#foodreels", "#streetfood", "#foodie", "#indianfood", "#recipe", "#foodblogger", "#easyrecipes", "#foodlover", "#desifood", "#tasty"],
+        ["#cooking", "#foodgram", "#homecooking", "#quickrecipes", "#foodvlog", "#yummy", "#foodstagram", "#snacks", "#chaat", "#viralfood"]
+      ]
+    },
+    "travel": {
+      "hooks": [
+        "This place exists and airlines don't want you to know",
+        "POV: ₹5000 trip that looks like 5 lakhs",
+        "Skip Goa. Go here instead.",
+        "I found the cheapest paradise in India",
+        "3 days, one backpack, zero regrets"
+      ],
+      "ctas": [
+        "Comment 'GUIDE' for the full itinerary",
+        "Save this for your next long weekend",
+        "Tag your travel buddy right now",
+        "Which spot should I cover next?"
+      ],
+      "hashtag_sets": [
+        ["#travelreels", "#wanderlust", "#indiatravel", "#travelgram", "#hiddengems", "#budgettravel", "#solotravel", "#incredibleindia", "#travelblogger", "#explorepage"],
+        ["#trip", "#vacation", "#mountains", "#beachlife", "#backpacking", "#travelindia", "#weekendgetaway", "#travelvlog", "#naturelovers", "#roamtheplanet"]
+      ]
+    },
+    "fashion": {
+      "hooks": [
+        "₹500 outfit that looks ₹5000 (thread inside)",
+        "POV: you finally understood color theory",
+        "Stop wearing this. Wear this instead.",
+        "3 fits, 1 jacket, infinite compliments",
+        "The styling hack stylists never say out loud"
+      ],
+      "ctas": [
+        "Rate this fit 1-10 👇",
+        "Comment 'LINK' for where to buy",
+        "Save for your next outfit crisis",
+        "Which one for the date? A, B or C?"
+      ],
+      "hashtag_sets": [
+        ["#fashionreels", "#ootd", "#styletips", "#outfitideas", "#fashionblogger", "#thrifting", "#styling", "#mensfashion", "#womensfashion", "#fitcheck"],
+        ["#grwm", "#lookbook", "#affordablefashion", "#trendingfashion", "#outfitinspo", "#fashionhacks", "#streetstyle", "#wardrobeessentials", "#styleinspo", "#dripcheck"]
+      ]
+    },
+    "tech": {
+      "hooks": [
+        "This free app replaces 4 paid subscriptions",
+        "Your phone has a setting that changes everything",
+        "POV: you learn ChatGPT actually can do this",
+        "Stop paying for this. There's a free version.",
+        "3 AI tools that feel illegal to know"
+      ],
+      "ctas": [
+        "Comment 'AI' and I'll send the full toolkit",
+        "Save this before you lose it in the feed",
+        "Which tool should I break down next?",
+        "Follow — tomorrow's one is even better"
+      ],
+      "hashtag_sets": [
+        ["#techreels", "#aitools", "#techtips", "#apps", "#productivity", "#chatgpt", "#techtok", "#gadgets", "#techhacks", "#futuretech"],
+        ["#ai", "#technology", "#software", "#lifehacks", "#digitaltools", "#learnai", "#techie", "#innovation", "#androidtips", "#iphonetips"]
+      ]
+    },
+    "music": {
+      "hooks": [
+        "This beat took 10 minutes and sounds like a hit",
+        "POV: you finally found your sound",
+        "Stop sampling like this (clearance nightmare)",
+        "The chord trick every producer gatekeeps"
+      ],
+      "ctas": [
+        "Drop a 🎧 if you want the project file",
+        "Comment the genre for part 2",
+        "Save this for your next session",
+        "Which bar hit hardest?"
+      ],
+      "hashtag_sets": [
+        ["#musicproduction", "#beatmaking", "#producerlife", "#musicreels", "#flstudio", "#ableton", "#musician", "#unsignedartist", "#newmusic", "#beats"],
+        ["#singer", "#songwriter", "#studiolife", "#musicindustry", "#indieartist", "#soundcloud", "#mixing", "#mastering", "#musiclover", "#viralaudio"]
+      ]
+    },
+    "comedy": {
+      "hooks": [
+        "POV: Indian parents find out you have a boyfriend",
+        "Nobody: ... absolutely nobody: my brain at 3am:",
+        "Tell me you grew up in the 2000s without telling me",
+        "Every group chat has this one person",
+        "Expectation vs reality: exam edition"
+      ],
+      "ctas": [
+        "Tag that one friend 😂",
+        "Comment the next POV I should do",
+        "Follow for daily brainrot (quality brainrot)",
+        "Which character are you? 👇"
+      ],
+      "hashtag_sets": [
+        ["#comedyreels", "#funny", "#memes", "#pov", "#relatable", "#indianmemes", "#comedy", "#humor", "#viralcomedy", "#lol"],
+        ["#funnyreels", "#memeindia", "#desimemes", "#sketchcomedy", "#comedian", "#jokes", "#funnyvideos", "#trendingmemes", "#funnycontent", "#lolmemes"]
+      ]
+    }
+  }
+}

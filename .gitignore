@@ -1,0 +1,19 @@
+# secrets & state — NEVER commit these
+.env
+.ig_session.json
+.consent.json
+ig_data.db
+workspace/
+*.session
+
+# python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# os/editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

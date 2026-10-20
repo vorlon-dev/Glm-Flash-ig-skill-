@@ -1,0 +1,101 @@
+# ⚡ Glm-Flash-ig-skill (Hinglish Guide)
+
+**AI ka bheja hua Instagram manager.** Naya chat kholo, ye repo ka link paste
+karo, aur AI tumhara personal viral influencer ban jayega — content planning se
+leke video editing, captions, hashtags, posting, scheduling, analytics — sab
+kuch AI khud karega. Aur haan: **DMs aur personal chats ko AI kabhi nahi
+kholta** bina tumhari explicit permission ke. Promise. 🔒
+
+## Kaise kaam karta hai (seedhi baat)
+
+```
+Tum (naya chat): "ye link install karo → github.com/vorlon-dev/Glm-Flash-ig-skill-"
+        ↓
+AI repo clone karta hai, self-test chalata hai
+        ↓
+AI puchega: IG ka username + password, niche (kya content), timezone
+        ↓
+Tum: "@mera_handle / street food / India"
+        ↓
+AI: account audit → week-1 viral plan → video ko reel banata hai (9:16,
+    subtitles, music, watermark) → hook-first caption + hashtags likhta hai →
+    best time pe post ya schedule karta hai → "kya chala" report deta hai
+```
+
+**GLM key ki zarurat nahi** — chat wala AI khud content likhta hai. (Optional
+`ZAI_API_KEY` sirf `--use-api` ke liye.)
+
+## Features ek nazar mein
+
+- 🎬 **Pro editing** — koi bhi video → 9:16 reel (blur-fill), photo → 1:1/4:5
+  post, auto-subtitles, background music (voice ducking ke saath), beat-cut
+  jump cuts, watermark, IG limits ke hisaab se compression, photos → slideshow reel
+- ✍️ **Viral copy** — hook-first captions, rotating hashtag sets (3 size mix),
+  pinned comment ideas
+- 🗓 **Smart timing** — niche + timezone ke hisaab se best slots (IST default),
+  SQLite queue, din mein max 5 post (hard cap)
+- 🤖 **Autopilot** — ek prompt → poore hafte ka plan (approval ke baad hi chalega)
+- 📈 **Analytics** — engagement snapshots, "kya chala" report: top posts, best
+  format, best hour
+- 🖥 **Dashboard** — `python scripts/ig_server.py` → neon UI pe sab kuch
+- 🛡 **Privacy** — DM/comment/story-viewers sirf tumhare written consent pe,
+  reply se pehle draft dikhta hai, credentials sirf tumhari machine pe
+
+## Setup (step by step)
+
+```bash
+git clone https://github.com/vorlon-dev/Glm-Flash-ig-skill-.git
+cd Glm-Flash-ig-skill
+pip install -r requirements.txt        # + system mein ffmpeg chahiye
+cp .env.example .env                   # IG creds + NICHE + TIMEZONE bharo
+python scripts/ig_setup.py --selftest  # sab [ok] aana chahiye
+python scripts/ig_setup.py --login     # session save ho jayegi
+```
+
+2FA/challenge code aaye to: `python scripts/ig_setup.py --login --code 123456`
+
+## Roz ka kaam
+
+```bash
+# reel post (auto 9:16 + subs + music + watermark + compress)
+python scripts/ig_post.py reel --media clip.mp4 \
+  --caption "POV: tumhari 12-second recipe ne group chat tod diya 👀" \
+  --tags "#streetfood,#foodreels"
+
+# hafte ka autopilot
+python scripts/ig_autopilot.py plan --niche "street food"
+python scripts/ig_autopilot.py approve     # plan padh ke approve karo
+python scripts/ig_autopilot.py run
+
+# schedule dekho / due posts chalao
+python scripts/ig_schedule.py slots
+python scripts/ig_schedule.py run-due
+
+# analytics
+python scripts/ig_analytics.py snapshot
+python scripts/ig_analytics.py report
+
+# dashboard
+python scripts/ig_server.py                # http://127.0.0.1:8790
+```
+
+## Important baatein (dhyan se padhna)
+
+- **Session mode** (username/password) unofficial API use karta hai — chhota
+  risk hai. Business account hai to **graph mode** best hai (Meta token).
+- Din mein 3 post default, max 5 — ye tumhare account ko ban se bachata hai.
+- `.env`, session, consent file sab **local** hain, git pe kabhi nahi jaati.
+- Follow-bots / mass-follow nahi hai — organic growth hi sustainable hai.
+
+## Apna khud ka skill banao
+
+Ye repo ek **template** hai — Instagram ki jagah YouTube, Twitter/X, WhatsApp,
+LinkedIn manager bana sakte ho. Full guide:
+[references/MAKE-YOUR-OWN-SKILL.md](references/MAKE-YOUR-OWN-SKILL.md)
+
+English README ke liye: [README.md](README.md)
+
+## Disclaimer
+
+Ye project Instagram/Meta se affiliated nahi hai. Session mode unofficial API
+hai, platform ToS ke against ja sakta hai — apne risk pe use karo. MIT License.
