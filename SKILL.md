@@ -86,9 +86,12 @@ says "install it" — then hands you their Instagram. Do this:
 1. Clone and bootstrap (in your sandbox):
    ```bash
    git clone <REPO_URL> glm-ig-skill && cd glm-ig-skill
-   pip install -r requirements.txt
+   python -m pip install -r requirements.txt
    ffmpeg -version   # must exist; install if missing (apt/brew/winget)
    ```
+   ⚠️ Use `python -m pip`, never bare `pip` — sandboxes often run a venv whose
+   Python differs from what `pip` points to, and bare pip installs into the
+   WRONG environment (classic failure: imports still missing after install).
 2. Verify the install:
    ```bash
    python scripts/ig_setup.py --selftest
@@ -101,9 +104,14 @@ says "install it" — then hands you their Instagram. Do this:
    python scripts/ig_setup.py --login --user '<username>' --pass '<password>'
    # if Instagram sends a code challenge (2FA):
    python scripts/ig_setup.py --login --user '<u>' --pass '<p>' --code <CODE>
+   # if the server IP is rate-limited (HTTP 429 / "please wait"):
+   python scripts/ig_setup.py --login --user '<u>' --pass '<p>' \
+          --proxy 'http://user:pass@host:port'   # residential/mobile proxy
    ```
    The password is used once and discarded; the session is cached for
    passwordless reuse. Never write credentials into any file or echo them back.
+   A proxy, once given, is saved to `.state/` (machine-local, git-ignored) and
+   silently routes every later command — no need to repeat it.
 5. **Auto-analysis happens automatically after login**: `ig_setup.py` chains
    `ig_audit.py`, which pulls the profile + recent post metrics and prints a
    JSON briefing. Read it and:
@@ -129,8 +137,13 @@ git-ignored):
 | File | What | Created by |
 |---|---|---|
 | `.state/session.json` | IG session cookies (passwordless resume) | login |
-| `.state/profile.json` | username, niche, watermark, timezone, goal | auto-audit / `--set-*` |
+| `.state/profile.json` | username, niche, watermark, timezone, goal, proxy URL | auto-audit / `--set-*` / `--proxy` |
 | `.state/consent.json` | privacy consent records | user approval only |
+
+Quick health check anytime:
+```bash
+python scripts/ig_setup.py --status
+```
 
 ## 3. Your viral playbook (how you actually make accounts blow up)
 
@@ -269,10 +282,13 @@ explain *why* a change will help — teach them virality while you do it.
 |---|---|
 | `ffmpeg not found` | install ffmpeg (`apt install ffmpeg` / `brew install ffmpeg`) |
 | Login challenge / 2FA code asked | relay code request to user, add `--code 123456` to login |
+| Login fails with **HTTP 429 / "please wait" / "use a quality proxy"** | the server IP (datacenter) is blocked, NOT the credentials. Stop after 2 tries. Then: wait 30–60 min and retry once, OR re-run login with `--proxy 'http://user:pass@host:port'` (residential/mobile proxy — fastest fix), OR switch to Graph token mode (`--token`) |
+| Session commands suddenly fail after working | IP may be throttled — `ig_setup.py --status`, then set a proxy once with `--proxy` |
 | `session missing or expired` | re-run `ig_setup.py --login --user '<u>' --pass '<p>'` (password re-asked once) |
 | `rate limited` in output | daily cap hit; scheduler auto-postpones — do not override |
+| deps install but imports still fail | you used bare `pip` into the wrong Python — redo with `python -m pip install -r requirements.txt` |
 | Graph mode publish pending | containers process async; retry status after 30–60 s |
-| instagrapi import error | `pip install instagrapi` (session-mode extra) |
+| instagrapi import error | `python -m pip install instagrapi` (session-mode extra) |
 
 ## 8. Bundled resources map
 

@@ -50,12 +50,17 @@ First Viral Report: audit → week-1 plan → video ko reel banata hai (9:16,
 ```bash
 git clone https://github.com/vorlon-dev/Glm-Flash-ig-skill-.git
 cd Glm-Flash-ig-skill
-pip install -r requirements.txt        # + system mein ffmpeg chahiye
+python -m pip install -r requirements.txt   # bare `pip` mat use karna — galat Python mein chala jaata hai
 python scripts/ig_setup.py --selftest  # sab [ok] aana chahiye
 
 # connect — password sirf EK baar use hota hai, kahin save nahi hota
 python scripts/ig_setup.py --login --user '<tumhara_handle>' --pass '<password>'
 # → login ke turant baad AUTO profile + niche analysis chal jaata hai
+#
+# cloud server pe login 429 de raha hai? Instagram datacenter IPs block karta hai.
+# Fix: residential proxy laga do — ek baar save hoga, har command mein apne aap use hoga:
+# python scripts/ig_setup.py --login --user '<tumhara_handle>' --pass '<password>' \
+#        --proxy 'http://user:pass@host:port'
 ```
 
 2FA/challenge code aaye to: same command mein `--code 123456` add kar do
