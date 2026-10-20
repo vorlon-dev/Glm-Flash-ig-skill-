@@ -65,6 +65,29 @@ Business accounts (optional, safest): `python scripts/ig_setup.py --token <TOKEN
 
 Connection summary anytime: `python scripts/ig_setup.py --status`
 
+### Safest alternative — no password through the agent at all
+
+If login stays blocked (or the user prefers zero password exposure), ask the
+user to export a session **on their own computer** (home IP, password stays
+with them):
+
+```bash
+# --- user runs this LOCALLY, not in the sandbox ---
+pip install instagrapi
+python scripts/ig_session_export.py --user '<their_username>'
+# → produces ig_session.json; user sends it in chat
+```
+
+Then import it on the sandbox and audit:
+
+```bash
+python scripts/ig_setup.py --import-session ig_session.json
+python scripts/ig_audit.py
+```
+
+`ig_session.json` grants account access — handle it like a password: store in
+`.state/` only, never commit, never print its contents.
+
 ## 5. Auto-analyze (happens automatically after login)
 
 `ig_setup.py --login` chains `ig_audit.py`, which prints a JSON briefing:

@@ -65,6 +65,11 @@ python scripts/ig_setup.py --login --user '<tumhara_handle>' --pass '<password>'
 
 2FA/challenge code aaye to: same command mein `--code 123456` add kar do
 
+**Password na dena ho (sabse safe tarika):** apne computer pe session banao —
+`pip install instagrapi` phir `python scripts/ig_session_export.py --user '<handle>'`
+→ `ig_session.json` file chat mein bhej do. Agent usse `--import-session` se
+import kar lega. Password tumhare computer se bahar jaata hi nahi. 🔒
+
 ## Roz ka kaam
 
 ```bash

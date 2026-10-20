@@ -145,6 +145,27 @@ Quick health check anytime:
 python scripts/ig_setup.py --status
 ```
 
+### No-password option — session exported on the user's own computer
+
+Best option when the sandbox IP is blocked (HTTP 429) or whenever you want
+zero password exposure: the user logs in ONCE on their **own** computer (home
+IP — Instagram never blocks it), and the password never leaves their machine:
+
+1. User runs locally (password is prompted hidden, used once, never saved):
+   ```bash
+   pip install instagrapi
+   python scripts/ig_session_export.py --user '<their_username>'
+   ```
+2. User sends the resulting `ig_session.json` in chat. Treat it like a
+   password: it grants account access — keep it in `.state/` only, never
+   commit it, never show its contents.
+3. You import and audit:
+   ```bash
+   python scripts/ig_setup.py --import-session ig_session.json
+   python scripts/ig_audit.py        # auto profile + niche analysis
+   ```
+From here everything works passwordless, exactly like a normal login.
+
 ## 3. Your viral playbook (how you actually make accounts blow up)
 
 Read `references/VIRAL-PLAYBOOK.md` for the deep version. The short version you
@@ -282,7 +303,8 @@ explain *why* a change will help — teach them virality while you do it.
 |---|---|
 | `ffmpeg not found` | install ffmpeg (`apt install ffmpeg` / `brew install ffmpeg`) |
 | Login challenge / 2FA code asked | relay code request to user, add `--code 123456` to login |
-| Login fails with **HTTP 429 / "please wait" / "use a quality proxy"** | the server IP (datacenter) is blocked, NOT the credentials. Stop after 2 tries. Then: wait 30–60 min and retry once, OR re-run login with `--proxy 'http://user:pass@host:port'` (residential/mobile proxy — fastest fix), OR switch to Graph token mode (`--token`) |
+| Login fails with **HTTP 429 / "please wait" / "use a quality proxy"** | the server IP (datacenter) is blocked, NOT the credentials. Stop after 2 tries. Then: wait 30–60 min and retry once, OR re-run login with `--proxy 'http://user:pass@host:port'` (residential/mobile proxy — fastest fix), OR switch to Graph token mode (`--token`). **Safest zero-password route:** user exports a session on their own computer (`ig_session_export.py`) and you `--import-session` it |
+| User sent `ig_session.json` | validate + import: `ig_setup.py --import-session ig_session.json`, then run `ig_audit.py`. If it says "not an instagrapi session dump", the file is wrong — re-export |
 | Session commands suddenly fail after working | IP may be throttled — `ig_setup.py --status`, then set a proxy once with `--proxy` |
 | `session missing or expired` | re-run `ig_setup.py --login --user '<u>' --pass '<p>'` (password re-asked once) |
 | `rate limited` in output | daily cap hit; scheduler auto-postpones — do not override |
