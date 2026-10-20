@@ -18,6 +18,7 @@ for login and is never written to disk. A --proxy, once set, is remembered
 locally (machine-local, git-ignored) and used for every later command.
 """
 import json
+import shutil
 import sys
 from pathlib import Path
 
@@ -131,6 +132,10 @@ def main() -> None:
                    help="remove the stored proxy")
     p.add_argument("--status", action="store_true",
                    help="print connection summary (mode/session/proxy/niche)")
+    p.add_argument("--import-session", dest="import_session", metavar="FILE",
+                   help="import a session file exported on the user's own "
+                        "computer (ig_session_export.py) — passwordless "
+                        "connection, no password login from this IP")
     p.add_argument("--profile", action="store_true")
     p.add_argument("--set-niche", dest="set_niche")
     p.add_argument("--set-goal", dest="set_goal")
@@ -169,6 +174,30 @@ def main() -> None:
     if a.set_handle:
         save_profile({"watermark": a.set_handle})
         print(f"[ok] watermark -> {a.set_handle}")
+
+    if a.import_session:
+        src = Path(a.import_session)
+        if not src.exists():
+            raise SystemExit(f"file not found: {src}")
+        try:
+            data = json.loads(src.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as e:
+            raise SystemExit(
+                f"not a readable session file ({e}). It must be the "
+                "ig_session.json produced by scripts/ig_session_export.py "
+                "on the user's own computer.")
+        if "cookies" not in data or "uuids" not in data:
+            raise SystemExit(
+                "this JSON is not an instagrapi session dump (missing "
+                "'cookies'/'uuids'). Ask the user to run "
+                "scripts/ig_session_export.py on their own computer and "
+                "send the real ig_session.json.")
+        cfg = load_config()
+        cfg.session_file.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(src, cfg.session_file)
+        print(f"[ok] session imported -> {cfg.session_file}")
+        print("[next] python scripts/ig_audit.py   # auto profile + niche "
+              "analysis (no password was ever needed)")
 
     if a.login:
         cfg = load_config()
@@ -212,7 +241,8 @@ def main() -> None:
             print(e)
 
     if not any([a.selftest, a.login, a.token, a.profile, a.set_niche,
-                a.set_goal, a.set_handle, a.proxy, a.clear_proxy, a.status]):
+                a.set_goal, a.set_handle, a.proxy, a.clear_proxy, a.status,
+                a.import_session]):
         p.print_help()
 
 

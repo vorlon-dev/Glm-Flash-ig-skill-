@@ -52,6 +52,11 @@ Credentials are passed **per-command at runtime** — the password is used once
 at login and never written to disk. The session cookie is cached in
 `.state/` (local, git-ignored) for passwordless reuse.
 
+**Zero-password option:** export a session on your own computer
+(`pip install instagrapi && python scripts/ig_session_export.py --user '<you>'`),
+send `ig_session.json` to the agent — it imports it with
+`--import-session` and your password never leaves your machine.
+
 ## Quickstart (human-run)
 
 ```bash
@@ -86,7 +91,8 @@ python scripts/ig_server.py            # http://127.0.0.1:8790
 
 | Script | Purpose |
 |---|---|
-| `ig_setup.py` | `--selftest` · `--login --user U --pass P [--code N] [--proxy URL]` · `--token T` · `--status` · `--profile` · `--set-niche/--set-goal/--set-handle` |
+| `ig_setup.py` | `--selftest` · `--login --user U --pass P [--code N] [--proxy URL]` · `--token T` · `--status` · `--import-session FILE` · `--profile` · `--set-niche/--set-goal/--set-handle` |
+| `ig_session_export.py` | run on YOUR computer: exports `ig_session.json` for passwordless, proxy-free connection |
 | `ig_audit.py` | auto profile + niche + engagement analysis (JSON briefing for the agent) |
 | `ig_post.py` | edit + post `photo/reel/story/video` (or `--queue "YYYY-MM-DD HH:MM"`) |
 | `ig_edit.py` | `reel-ify` `post-ify` `subtitles` `music` `beat-cut` `slideshow` `thumbnail` `pipeline` |
