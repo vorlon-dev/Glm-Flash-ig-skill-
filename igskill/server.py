@@ -14,22 +14,12 @@ from pydantic import BaseModel
 
 from .analytics import report, snapshot
 from .autopilot import build_plan, execute_plan
-from .config import Config, load_config
+from .config import load_config
 from .privacy import VALID_SCOPES, consent_report, grant_consent, revoke_consent
 from .scheduler import add_to_queue, best_slots, cancel_queued, list_queue, run_due
 
 app = FastAPI(title="Glm-Flash IG Viral Manager", version="1.0.0")
-
-
-def _boot_cfg():
-    """Tolerant load: dashboard must work even before IG creds are set."""
-    try:
-        return load_config()
-    except SystemExit:
-        return Config()
-
-
-cfg = _boot_cfg()
+cfg = load_config()  # zero-config: always loadable, no .env required
 
 
 class QueueIn(BaseModel):
@@ -43,7 +33,6 @@ class QueueIn(BaseModel):
 class AutopilotIn(BaseModel):
     niche: str
     count: int = 7
-    use_api: bool = False
     media_dir: str | None = None
 
 
@@ -57,7 +46,8 @@ class ConsentIn(BaseModel):
 def status():
     q = list_queue(cfg)
     info = {"mode": cfg.resolved_mode, "timezone": cfg.timezone,
-            "niche": cfg.niche, "db": str(cfg.db_path),
+            "niche": cfg.niche, "state_dir": ".state/ (local only)",
+            "connection": cfg.connected_hint(),
             "queued": sum(1 for i in q if i["status"] == "queued"),
             "posted": sum(1 for i in q if i["status"] == "posted"),
             "max_posts_per_day": cfg.max_posts_per_day,
@@ -107,8 +97,7 @@ def slots(post_type: str = "reel", days: int = 7):
 
 @app.post("/api/autopilot/plan")
 def autopilot_plan(body: AutopilotIn):
-    plan = build_plan(cfg, body.niche, body.count,
-                      use_api=body.use_api, media_dir=body.media_dir)
+    plan = build_plan(cfg, body.niche, body.count, media_dir=body.media_dir)
     return {"ok": True, "plan_file": str(plan),
             "preview": json.loads(plan.read_text(encoding="utf-8"))}
 

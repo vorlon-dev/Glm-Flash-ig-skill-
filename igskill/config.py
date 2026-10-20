@@ -1,73 +1,93 @@
-"""Configuration loading and safety caps.
+"""Configuration — zero-config by design.
 
-All settings come from environment variables / .env in the skill root.
-Safety caps are enforced here so no other module can accidentally bypass them.
+There is NO .env requirement. This repo is universal: a fresh chat pastes the
+repo link, the agent clones it, and everything is configured at RUNTIME:
+
+  - credentials are passed per-command by the agent (--user/--pass/--token)
+    and used once; the Instagram password is NEVER written to disk
+  - the instagrapi session cookie is cached in .state/session.json so later
+    commands don't need the password again
+  - profile facts (niche, watermark, timezone, goal) live in
+    .state/profile.json, written by ig_setup.py / ig_audit.py
+  - consent lives in .state/consent.json (see igskill/privacy.py)
+
+Everything in .state/ is machine-local and git-ignored.
 """
 from __future__ import annotations
 
-import os
+import json
 import random
 from dataclasses import dataclass, field
 from pathlib import Path
 
-try:
-    from dotenv import load_dotenv
-except ImportError:  # pragma: no cover
-    def load_dotenv(*_a, **_k):  # type: ignore
-        return False
-
 SKILL_ROOT = Path(__file__).resolve().parent.parent
-ENV_PATH = SKILL_ROOT / ".env"
-load_dotenv(ENV_PATH)
+STATE_DIR = SKILL_ROOT / ".state"
 
 # Hard safety caps (ban prevention). Do NOT raise these.
 HARD_MAX_POSTS_PER_DAY = 5
-HARD_MAX_ACTIONS_PER_HOUR = 30
 
 
-def _env(key: str, default: str = "") -> str:
-    return os.environ.get(key, default).strip()
+def detect_timezone() -> str:
+    """Best-effort local timezone detection (sandbox/VM friendly)."""
+    import os
+    tz = os.environ.get("TZ", "").strip()
+    if tz:
+        return tz
+    try:
+        return Path("/etc/timezone").read_text(encoding="utf-8").strip() or "Asia/Calcutta"
+    except OSError:
+        return "Asia/Calcutta"
+
+
+def _read_json(path: Path, default: dict) -> dict:
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return default
+
+
+def load_profile() -> dict:
+    return _read_json(STATE_DIR / "profile.json", {})
+
+
+def save_profile(update: dict) -> dict:
+    STATE_DIR.mkdir(parents=True, exist_ok=True)
+    p = STATE_DIR / "profile.json"
+    data = {**load_profile(), **update}
+    p.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
+    return data
 
 
 @dataclass
 class Config:
-    # --- Instagram connection ---
-    ig_mode: str = field(default_factory=lambda: _env("IG_MODE", "auto"))   # auto|session|graph
-    ig_username: str = field(default_factory=lambda: _env("IG_USERNAME"))
-    ig_password: str = field(default_factory=lambda: _env("IG_PASSWORD"))
-    ig_access_token: str = field(default_factory=lambda: _env("IG_ACCESS_TOKEN"))
-    ig_business_id: str = field(default_factory=lambda: _env("IG_BUSINESS_ID"))
-    ig_session_file: str = field(default_factory=lambda: _env(
-        "IG_SESSION_FILE", str(SKILL_ROOT / ".ig_session.json")))
+    # --- runtime credentials (passed by the agent per-command; never persisted).
+    # The password exists only in process memory during a login call.
+    ig_username: str = field(default_factory=lambda: load_profile().get("username", ""))
+    ig_password: str = ""          # intentionally NOT loaded from anywhere
+    ig_access_token: str = field(default_factory=lambda: load_profile().get("graph_token", ""))
+    ig_business_id: str = field(default_factory=lambda: load_profile().get("business_id", ""))
 
-    # --- Content engine ---
-    zai_api_key: str = field(default_factory=lambda: _env("ZAI_API_KEY"))
-    zai_base_url: str = field(default_factory=lambda: _env(
-        "ZAI_BASE_URL", "https://api.z.ai/api/paas/v4"))
-    zai_model: str = field(default_factory=lambda: _env("ZAI_MODEL", "glm-4.6"))
+    # --- profile facts (auto-filled by ig_audit.py, overridable via ig_setup.py)
+    niche: str = field(default_factory=lambda: load_profile().get("niche", "general"))
+    watermark: str = field(default_factory=lambda: load_profile().get("watermark", ""))
+    goal: str = field(default_factory=lambda: load_profile().get("goal", ""))
+    language: str = field(default_factory=lambda: load_profile().get("language", "english"))
+    timezone: str = field(default_factory=lambda: load_profile().get("timezone") or detect_timezone())
 
-    # --- Persona / strategy ---
-    niche: str = field(default_factory=lambda: _env("NICHE", "general"))
-    timezone: str = field(default_factory=lambda: _env("TIMEZONE", "Asia/Calcutta"))
-    watermark: str = field(default_factory=lambda: _env("WATERMARK", ""))
-    language: str = field(default_factory=lambda: _env("LANGUAGE", "english"))
+    # --- safety (defaults are the policy; hard cap enforced below)
+    max_posts_per_day: int = min(int(load_profile().get("max_posts_per_day", 3)),
+                                 HARD_MAX_POSTS_PER_DAY)
+    min_delay_seconds: int = 30
+    max_delay_seconds: int = 120
 
-    # --- Safety (effective values can only be lower than hard caps) ---
-    max_posts_per_day: int = min(
-        int(_env("MAX_POSTS_PER_DAY", "3") or 3), HARD_MAX_POSTS_PER_DAY)
-    min_delay_seconds: int = int(_env("MIN_DELAY_SECONDS", "30") or 30)
-    max_delay_seconds: int = int(_env("MAX_DELAY_SECONDS", "120") or 120)
+    # --- dashboard
+    host: str = "127.0.0.1"
+    port: int = 8790
 
-    # --- Server ---
-    host: str = field(default_factory=lambda: _env("HOST", "127.0.0.1"))
-    port: int = int(_env("PORT", "8790") or 8790)
-
+    # ------------------------------------------------------------ paths --
     @property
-    def resolved_mode(self) -> str:
-        """auto -> graph if token present else session."""
-        if self.ig_mode == "auto":
-            return "graph" if self.ig_access_token else "session"
-        return self.ig_mode
+    def session_file(self) -> Path:
+        return STATE_DIR / "session.json"
 
     @property
     def db_path(self) -> Path:
@@ -75,7 +95,7 @@ class Config:
 
     @property
     def consent_path(self) -> Path:
-        return SKILL_ROOT / ".consent.json"
+        return STATE_DIR / "consent.json"
 
     @property
     def workdir(self) -> Path:
@@ -83,16 +103,34 @@ class Config:
         d.mkdir(parents=True, exist_ok=True)
         return d
 
-    def validate(self) -> list[str]:
-        problems = []
-        mode = self.resolved_mode
-        if mode == "session" and not (self.ig_username and self.ig_password):
-            problems.append("session mode needs IG_USERNAME and IG_PASSWORD in .env")
-        if mode == "graph" and not self.ig_access_token:
-            problems.append("graph mode needs IG_ACCESS_TOKEN in .env")
-        if self.max_posts_per_day > HARD_MAX_POSTS_PER_DAY:
-            problems.append(f"MAX_POSTS_PER_DAY cannot exceed {HARD_MAX_POSTS_PER_DAY}")
-        return problems
+    # ----------------------------------------------------------- status --
+    @property
+    def resolved_mode(self) -> str:
+        return "graph" if self.ig_access_token else "session"
+
+    @property
+    def has_session(self) -> bool:
+        return self.session_file.exists()
+
+    def connected_hint(self) -> str:
+        if self.resolved_mode == "graph":
+            return "graph token loaded from .state/profile.json"
+        if self.has_session:
+            return "session file found — passwordless re-login available"
+        return "not connected yet — run: python scripts/ig_setup.py --login --user <u> --pass <p>"
+
+    def require_credentials(self) -> None:
+        """Raise a clear, agent-actionable error when an action needs login."""
+        if self.resolved_mode == "graph" and self.ig_access_token:
+            return
+        if self.resolved_mode == "session" and (self.has_session or self.ig_username):
+            return
+        raise SystemExit(
+            "Instagram not connected yet.\n"
+            "Ask the user for their username + password (in chat), then run:\n"
+            "  python scripts/ig_setup.py --login --user '<username>' --pass '<password>'\n"
+            "(The password is used once for login and never stored on disk.)"
+        )
 
     def safety_delay(self) -> float:
         """Randomized human-like delay between actions (ban prevention)."""
@@ -102,11 +140,6 @@ class Config:
 
 
 def load_config() -> Config:
-    cfg = Config()
-    problems = cfg.validate()
-    if problems:
-        raise SystemExit(
-            "[config] .env problems:\n  - " + "\n  - ".join(problems)
-            + "\nCopy .env.example to .env and fill it in (see README)."
-        )
-    return cfg
+    """Always returns a usable Config — this skill is zero-config by design."""
+    STATE_DIR.mkdir(parents=True, exist_ok=True)
+    return Config()

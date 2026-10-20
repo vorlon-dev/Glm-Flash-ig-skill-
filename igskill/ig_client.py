@@ -3,10 +3,10 @@
   graph   — official Instagram Graph API (Business accounts, safest)
   session — instagrapi username/password (full features, unofficial)
 
-Both engines implement: publish_photo / publish_video / publish_reel /
-publish_story / recent_media / profile. Publishing is rate-limited by
-igskill.scheduler (hard cap 5/day) and always preceded by a randomized
-human-like delay.
+No .env, no API keys: credentials are passed at runtime by the agent, the
+password is used once and never stored, and the session cookie enables
+passwordless resume. Publishing is rate-limited by igskill.scheduler
+(hard cap 5/day) and always preceded by a randomized human-like delay.
 
 instagrapi is imported lazily so the toolkit works without it (graph mode,
 dashboard, editing, scheduling all still run).
@@ -35,7 +35,9 @@ class GraphAPIClient:
     def __init__(self, cfg: Config):
         self.cfg = cfg
         if not cfg.ig_access_token:
-            raise IGError("graph mode needs IG_ACCESS_TOKEN in .env")
+            raise IGError(
+                "graph mode needs a token. Get it from the user (Business "
+                "account) and run: python scripts/ig_setup.py --token <TOKEN>")
         self.token = cfg.ig_access_token
         self.user_id = cfg.ig_business_id or self._me()
 
@@ -116,7 +118,13 @@ class GraphAPIClient:
 
 
 class SessionClient:
-    """instagrapi engine — username/password, session cached on disk."""
+    """instagrapi engine — credentials used ONCE at login, then cookie session.
+
+    The password is never written to disk. Resume is passwordless: the cached
+    session in .state/session.json is probed with the home-feed endpoint
+    (documented session test) purely to check validity — its content is
+    discarded and never read for data.
+    """
 
     def __init__(self, cfg: Config):
         self.cfg = cfg
@@ -131,19 +139,33 @@ class SessionClient:
         self.cl = Client()
         self.cl.delay_range = [max(2, cfg.min_delay_seconds // 3),
                                max(4, cfg.max_delay_seconds // 3)]
-        self.session_file = Path(cfg.ig_session_file)
+        self.session_file = Path(cfg.session_file)
         self._loaded = False
 
     # ------------------------------------------------------------- session --
+    def _try_resume(self) -> bool:
+        """Passwordless resume from cached cookies. Probe = home-feed endpoint
+        (validity check only — feed content is discarded, never stored/shown)."""
+        if not self.session_file.exists():
+            return False
+        try:
+            self.cl.load_settings(self.session_file)
+            self.cl.get_timeline_feed()  # validity probe only
+            self._loaded = True
+            return True
+        except Exception:
+            return False
+
     def login(self, code: str | None = None) -> dict:
-        if self.session_file.exists():
-            try:
-                self.cl.load_settings(self.session_file)
-                self.cl.login(self.cfg.ig_username, self.cfg.ig_password)
-                self._loaded = True
-                return {"ok": True, "restored": "session file"}
-            except Exception:
-                pass
+        if not code and self._try_resume():
+            return {"ok": True, "restored": "valid session file — no password needed"}
+        if not (self.cfg.ig_username and self.cfg.ig_password):
+            raise IGError(
+                "no valid session and no credentials provided.\n"
+                "Ask the user in chat, then run:\n"
+                "  python scripts/ig_setup.py --login --user '<u>' --pass '<p>'"
+                " [--code 123456]"
+            )
         try:
             self.cl.login(self.cfg.ig_username, self.cfg.ig_password,
                           verification_code=code)
@@ -153,18 +175,23 @@ class SessionClient:
                 raise IGError(
                     "Instagram sent a login challenge (2FA/verification code).\n"
                     "Ask the user for the 6-digit code they received, then run:\n"
-                    "  python scripts/ig_setup.py --login --code <CODE>"
+                    "  python scripts/ig_setup.py --login --user '<u>' --pass '<p>'"
+                    " --code <CODE>"
                 ) from e
             raise IGError(f"login failed: {msg}") from e
         self.cl.dump_settings(self.session_file)
         self._loaded = True
-        return {"ok": True, "restored": "fresh login"}
+        return {"ok": True, "restored": "fresh login (password discarded)"}
 
     def _ensure(self) -> None:
         if not self._loaded:
-            if not (self.cfg.ig_username and self.cfg.ig_password):
-                raise IGError("session mode needs IG_USERNAME and IG_PASSWORD in .env")
-            self.login()
+            if self._try_resume():
+                return
+            raise IGError(
+                "Instagram session missing or expired.\n"
+                "Tell the user, and ask them to confirm re-login in chat, then:\n"
+                "  python scripts/ig_setup.py --login --user '<u>' --pass '<p>'"
+            )
 
     def profile(self) -> dict:
         self._ensure()

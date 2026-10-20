@@ -1,9 +1,9 @@
-"""Viral content generation — captions, hooks, hashtags, week plans.
+"""Viral content generation — captions, hooks, hashtags, ideas.
 
-Two modes:
-  agent mode (default): the calling AI agent already wrote a content JSON —
-      this module validates/normalizes it and enriches hashtags offline.
-  api mode: calls the Z.ai GLM API (OpenAI-compatible) when ZAI_API_KEY is set.
+THE AGENT IS THE CONTENT ENGINE. No API keys exist in this skill: in agent
+mode the calling AI writes captions/hooks/hashtags/ideas itself (it's an
+influencer, after all) and hands them to the scripts as content JSON. The
+offline templates below are the fallback when the agent wants raw material.
 
 Content JSON shape:
 {
@@ -76,7 +76,7 @@ def rotate_hashtags(base_tags: list[str], niche: str, set_index: int = 0) -> lis
 
 
 def validate_content(d: dict) -> tuple[ContentPlan, list[str]]:
-    """Normalize agent/API output into a ContentPlan; return (plan, warnings)."""
+    """Normalize agent-written content into a ContentPlan; return (plan, warnings)."""
     warnings = []
     plan = ContentPlan.from_dict(d)
     if not plan.caption:
@@ -96,79 +96,8 @@ def validate_content(d: dict) -> tuple[ContentPlan, list[str]]:
     return plan, warnings
 
 
-# ---------------------------------------------------------------- API mode --
-
-VIRAL_SYSTEM_PROMPT = """You are a viral Instagram influencer and growth strategist.
-Write scroll-stopping content in the requested niche and language.
-Rules:
-- Caption structure: hook line (<=90 chars) + tension + payoff + one CTA/question.
-- No emojis spam: max 3 emojis total. Line breaks between sections.
-- Hashtags: 8-15, mixed sizes (3 big, 5 mid, 7 niche), no banned tags.
-- Return STRICT JSON only, no markdown fences.
-JSON schema:
-{"caption": str, "hashtags": [str], "alt_text": str, "comment_pin": str}
-For idea lists use schema:
-{"ideas": [{"title": str, "format": "reel|carousel|photo", "hook": str, "beats": [str]}]}"""
-
-
-def _zai_chat(cfg, messages: list[dict], max_tokens: int = 900) -> str:
-    import httpx
-
-    resp = httpx.post(
-        f"{cfg.zai_base_url.rstrip('/')}/chat/completions",
-        headers={"Authorization": f"Bearer {cfg.zai_api_key}"},
-        json={
-            "model": cfg.zai_model,
-            "messages": messages,
-            "temperature": 0.9,
-            "max_tokens": max_tokens,
-        },
-        timeout=60,
-    )
-    resp.raise_for_status()
-    return resp.json()["choices"][0]["message"]["content"]
-
-
-def _extract_json(text: str) -> dict:
-    text = re.sub(r"^```(?:json)?|```$", "", text.strip(), flags=re.M).strip()
-    start = min((i for i in (text.find("{"), text.find("[")) if i >= 0), default=-1)
-    if start < 0:
-        raise ValueError(f"no JSON in model output:\n{text[:300]}")
-    return json.loads(text[start:])  # may raise — caller handles
-
-
-def generate_content(cfg, niche: str, idea: str, post_type: str = "reel") -> dict:
-    """API mode: generate one caption/hashtag set via Z.ai GLM."""
-    if not cfg.zai_api_key:
-        raise SystemExit("ZAI_API_KEY not set — either write content JSON yourself "
-                         "(agent mode) or add the key to .env")
-    raw = _zai_chat(cfg, [
-        {"role": "system", "content": VIRAL_SYSTEM_PROMPT},
-        {"role": "user", "content":
-            f"niche: {niche}\nformat: {post_type}\npost idea: {idea}\n"
-            f"language: {cfg.language}\ntimezone market: {cfg.timezone}"},
-    ])
-    return _extract_json(raw)
-
-
-def generate_week_plan(cfg, niche: str, count: int = 7) -> list[dict]:
-    """API mode: generate a week of post ideas."""
-    if not cfg.zai_api_key:
-        raise SystemExit("ZAI_API_KEY not set — use agent mode (write ideas JSON) "
-                         "or add the key to .env")
-    raw = _zai_chat(cfg, [
-        {"role": "system", "content": VIRAL_SYSTEM_PROMPT},
-        {"role": "user", "content":
-            f"Give me {count} Instagram post ideas for a {niche} account targeting "
-            f"{cfg.timezone} audience. Mix formats (reels 60%, carousels 20%, photos 20%). "
-            f"Each idea: title, format, hook, 3-4 beat-by-beat content points."},
-    ], max_tokens=1600)
-    data = _extract_json(raw)
-    return data.get("ideas", data if isinstance(data, list) else [])
-
-
 def offline_ideas(niche: str, count: int = 7) -> list[dict]:
-    """Zero-API fallback ideas from templates (agent should still improve them)."""
+    """Starter ideas from templates — the agent should rewrite and improve them."""
     t = load_templates().get("niches", {}).get(niche, {}) or load_templates().get("niches", {}).get("general", {})
     hooks = t.get("hooks") or [
         "POV: you just started {niche} and everyone gives you this advice...",
@@ -176,6 +105,7 @@ def offline_ideas(niche: str, count: int = 7) -> list[dict]:
         "3 mistakes killing your {niche} progress (I made all 3)",
         "Do this for 7 days and thank me later {niche} edition:",
     ]
+    ctas = t.get("ctas") or ["Which one hits? 👇", "Save this before it's gone"]
     ideas = []
     for i in range(count):
         hook = hooks[i % len(hooks)].format(niche=niche)
@@ -184,7 +114,7 @@ def offline_ideas(niche: str, count: int = 7) -> list[dict]:
             "format": "reel" if i % 5 != 4 else "carousel",
             "hook": hook,
             "beats": ["pattern-interrupt first frame", "deliver value fast",
-                      "loop the ending", "CTA in caption"],
+                      "loop the ending", ctas[i % len(ctas)]],
         })
     random.shuffle(ideas)
     return ideas

@@ -1,10 +1,11 @@
 # ⚡ Glm-Flash-ig-skill (Hinglish Guide)
 
 **AI ka bheja hua Instagram manager.** Naya chat kholo, ye repo ka link paste
-karo, aur AI tumhara personal viral influencer ban jayega — content planning se
-leke video editing, captions, hashtags, posting, scheduling, analytics — sab
-kuch AI khud karega. Aur haan: **DMs aur personal chats ko AI kabhi nahi
-kholta** bina tumhari explicit permission ke. Promise. 🔒
+karo, aur AI tumhara personal viral influencer ban jayega — profile + niche
+auto-analysis se leke video editing, captions, hashtags, posting, scheduling,
+analytics — sab kuch AI khud karega. **Koi API key nahi, koi .env file nahi** —
+repo universal hai. Aur haan: **DMs aur personal chats ko AI kabhi nahi kholta**
+bina tumhari explicit permission ke. Promise. 🔒
 
 ## Kaise kaam karta hai (seedhi baat)
 
@@ -13,17 +14,20 @@ Tum (naya chat): "ye link install karo → github.com/vorlon-dev/Glm-Flash-ig-sk
         ↓
 AI repo clone karta hai, self-test chalata hai
         ↓
-AI puchega: IG ka username + password, niche (kya content), timezone
+AI puchega: IG ka username + password (bas itna hi — niche khud detect karega)
         ↓
-Tum: "@mera_handle / street food / India"
+Tum: "@mera_handle / merapassword"
         ↓
-AI: account audit → week-1 viral plan → video ko reel banata hai (9:16,
+AI login karta hai (password sirf ek baar use hota hai, kahin save nahi hota)
+        ↓
+AUTO profile + niche analysis (engagement, kaunsa format chal raha hai)
+        ↓
+First Viral Report: audit → week-1 plan → video ko reel banata hai (9:16,
     subtitles, music, watermark) → hook-first caption + hashtags likhta hai →
     best time pe post ya schedule karta hai → "kya chala" report deta hai
 ```
 
-**GLM key ki zarurat nahi** — chat wala AI khud content likhta hai. (Optional
-`ZAI_API_KEY` sirf `--use-api` ke liye.)
+**GLM key, OpenAI key, .env — kuch nahi chahiye.** Content AI khud likhta hai.
 
 ## Features ek nazar mein
 
@@ -47,12 +51,14 @@ AI: account audit → week-1 viral plan → video ko reel banata hai (9:16,
 git clone https://github.com/vorlon-dev/Glm-Flash-ig-skill-.git
 cd Glm-Flash-ig-skill
 pip install -r requirements.txt        # + system mein ffmpeg chahiye
-cp .env.example .env                   # IG creds + NICHE + TIMEZONE bharo
 python scripts/ig_setup.py --selftest  # sab [ok] aana chahiye
-python scripts/ig_setup.py --login     # session save ho jayegi
+
+# connect — password sirf EK baar use hota hai, kahin save nahi hota
+python scripts/ig_setup.py --login --user '<tumhara_handle>' --pass '<password>'
+# → login ke turant baad AUTO profile + niche analysis chal jaata hai
 ```
 
-2FA/challenge code aaye to: `python scripts/ig_setup.py --login --code 123456`
+2FA/challenge code aaye to: same command mein `--code 123456` add kar do
 
 ## Roz ka kaam
 
@@ -62,8 +68,8 @@ python scripts/ig_post.py reel --media clip.mp4 \
   --caption "POV: tumhari 12-second recipe ne group chat tod diya 👀" \
   --tags "#streetfood,#foodreels"
 
-# hafte ka autopilot
-python scripts/ig_autopilot.py plan --niche "street food"
+# hafte ka autopilot (ideas bhi AI khud likhta hai)
+python scripts/ig_autopilot.py plan --niche "street food" --ideas ideas.json
 python scripts/ig_autopilot.py approve     # plan padh ke approve karo
 python scripts/ig_autopilot.py run
 
@@ -82,9 +88,12 @@ python scripts/ig_server.py                # http://127.0.0.1:8790
 ## Important baatein (dhyan se padhna)
 
 - **Session mode** (username/password) unofficial API use karta hai — chhota
-  risk hai. Business account hai to **graph mode** best hai (Meta token).
+  risk hai. Business account hai to **graph mode** best hai (`--token <TOKEN>`).
+- **Password sirf login wale ek command mein use hota hai, disk pe kabhi
+  nahi jaata.** Sirf session cookie cache hoti hai (`.state/` mein, local).
 - Din mein 3 post default, max 5 — ye tumhare account ko ban se bachata hai.
-- `.env`, session, consent file sab **local** hain, git pe kabhi nahi jaati.
+- DM/comment access sirf tumhare written consent pe (`.state/consent.json`),
+  reply se pehle draft dikhta hai, aur consent kabhi bhi revoke ho sakti hai.
 - Follow-bots / mass-follow nahi hai — organic growth hi sustainable hai.
 
 ## Apna khud ka skill banao

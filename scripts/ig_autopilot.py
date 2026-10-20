@@ -28,8 +28,8 @@ def main() -> None:
     p.add_argument("cmd", choices=["plan", "approve", "run", "due", "status"])
     p.add_argument("--niche", default=None)
     p.add_argument("--count", type=int, default=7)
-    p.add_argument("--ideas", help="agent-written ideas JSON file")
-    p.add_argument("--use-api", action="store_true", help="generate via Z.ai GLM")
+    p.add_argument("--ideas", help="agent-written ideas JSON file (the agent is "
+                                    "the content engine — write them yourself)")
     p.add_argument("--media-dir", help="folder with your raw photos/videos")
     a = p.parse_args()
 
@@ -39,9 +39,9 @@ def main() -> None:
         from igskill.autopilot import build_plan
         niche = a.niche or cfg.niche
         if niche == "general" and not a.niche:
-            raise SystemExit("give a niche: --niche 'street food' (or set NICHE in .env)")
-        build_plan(cfg, niche, a.count, ideas_file=a.ideas,
-                   use_api=a.use_api, media_dir=a.media_dir)
+            raise SystemExit("give a niche: --niche 'street food' "
+                             "(or run ig_audit.py / ig_setup.py --set-niche first)")
+        build_plan(cfg, niche, a.count, ideas_file=a.ideas, media_dir=a.media_dir)
     elif a.cmd == "approve":
         plan_path = cfg.workdir / "autopilot_plan.json"
         plan = json.loads(plan_path.read_text(encoding="utf-8"))

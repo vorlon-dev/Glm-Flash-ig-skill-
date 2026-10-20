@@ -20,8 +20,7 @@ my-skill/
 ├── HINGLISH-README.md    ← optional regional readme
 ├── INSTALL.md            ← the agent's install-from-link steps
 ├── requirements.txt
-├── .env.example          ← every secret the user must fill
-├── .gitignore            ← MUST ignore .env, sessions, databases
+├── .gitignore            ← MUST ignore .state/, sessions, databases
 ├── LICENSE
 ├── scripts/              ← thin CLI entrypoints (argparse + one import each)
 ├── igskill/              (or yourpackage/) ← the real logic
@@ -71,15 +70,18 @@ p = argparse.ArgumentParser()
 ```
 Rules that keep skills safe: hard caps in config (not CLIs), randomized
 delays between external actions, consent checks for anything private,
-lazy imports for heavy dependencies.
+lazy imports for heavy dependencies. **Zero-config rule:** no .env files,
+no API keys — credentials passed per-command at runtime, state in `.state/`,
+and the agent itself writes the creative content (that's what makes the
+repo universal for fresh chats).
 
 ## Step 4 — safety checklist before you publish
 
-- [ ] `.gitignore` covers `.env`, sessions, consent, database files
-- [ ] Secrets never appear in code, logs, or examples
+- [ ] `.gitignore` covers `.state/`, sessions, consent, database files
+- [ ] Secrets never appear in code, logs, or examples — and are never stored
 - [ ] Privacy actions require recorded consent (`privacy.py` pattern)
 - [ ] Rate limits + delays are enforced centrally
-- [ ] Works with zero API keys (offline/agent mode) — API mode optional
+- [ ] Works with zero API keys and zero config files (agent mode is the only mode)
 - [ ] `--selftest` command exists so agents can verify the install
 
 ## Step 5 — publish & let others install

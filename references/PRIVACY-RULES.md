@@ -47,10 +47,13 @@ python -m igskill.privacy --status
 
 ## Data storage
 
-- Credentials: `.env` (local only, git-ignored)
-- Session: `.ig_session.json` (local only, git-ignored)
-- Consent: `.consent.json` (local only, git-ignored)
+- Password: **never stored anywhere** — used once in the login command's
+  process memory, then discarded
+- Session cookies: `.state/session.json` (local only, git-ignored)
+- Profile facts (niche, watermark, timezone): `.state/profile.json`
+- Consent: `.state/consent.json` (local only, git-ignored)
 - Metrics/queue: `ig_data.db` (local SQLite)
 
-Nothing is sent to any server other than Instagram's own APIs and (only if
-the user opts into API mode) the LLM endpoint the user configured.
+Nothing is sent to any server other than Instagram's own APIs. There are no
+API keys in this skill and no third-party LLM calls — the agent in the chat
+is the content engine.

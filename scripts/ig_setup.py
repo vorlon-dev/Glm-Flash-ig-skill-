@@ -1,12 +1,19 @@
 #!/usr/bin/env python3
-"""ig_setup — self-test, connect account, show profile.
+"""ig_setup — zero-config connection: self-test, login, profile, settings.
 
-  python scripts/ig_setup.py --selftest        # verify ffmpeg/deps/config
-  python scripts/ig_setup.py --login           # session mode login (saves session)
-  python scripts/ig_setup.py --login --code 123456   # after IG challenge
-  python scripts/ig_setup.py --token TOKEN     # graph mode
-  python scripts/ig_setup.py --profile         # who am I connected as
+Everything is runtime-args based. No .env. Universal repo.
+
+  python scripts/ig_setup.py --selftest
+  python scripts/ig_setup.py --login --user '<u>' --pass '<p>' [--code 123456]
+  python scripts/ig_setup.py --token <GRAPH_TOKEN>        # Business accounts
+  python scripts/ig_setup.py --profile
+  python scripts/ig_setup.py --set-niche "street food" --set-goal followers
+
+After a successful --login, the profile is auto-analyzed (niche, engagement,
+best formats) and .state/profile.json is updated. The password is used ONCE
+for login and is never written to disk.
 """
+import json
 import sys
 from pathlib import Path
 
@@ -16,30 +23,20 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 def selftest() -> int:
     print("=== Glm-Flash-ig-skill self-test ===")
     ok = True
-    try:
-        from igskill.config import load_config
-        cfg = load_config()
-        print(f"[ok] config loaded — mode={cfg.resolved_mode} tz={cfg.timezone} "
-              f"cap={cfg.max_posts_per_day}/day")
-    except SystemExit as e:
-        print(f"[warn] config: {e}")
     import importlib
-    for mod in ("dotenv", "PIL", "httpx", "fastapi", "uvicorn", "requests"):
+    for mod in ("PIL", "fastapi", "uvicorn", "requests", "pydantic"):
         try:
             importlib.import_module(mod)
             print(f"[ok] python dep: {mod}")
         except ImportError:
             print(f"[MISS] python dep: {mod}  -> pip install {mod}")
             ok = False
-    try:
-        import shutil
-        if shutil.which("ffmpeg"):
-            print("[ok] ffmpeg found")
-        else:
-            print("[MISS] ffmpeg — install it (see README)")
-            ok = False
-    except Exception:
-        pass
+    import shutil
+    if shutil.which("ffmpeg"):
+        print("[ok] ffmpeg found")
+    else:
+        print("[MISS] ffmpeg — install it (see README)")
+        ok = False
     try:
         from igskill.media import thumbnail
         from PIL import Image
@@ -54,52 +51,95 @@ def selftest() -> int:
         ok = False
     try:
         from igskill.scheduler import best_slots
-        from igskill.config import Config
-        slots = best_slots(Config(), "reel", days=1)
-        print(f"[ok] scheduler slots: {len(slots)} next slots computed")
+        from igskill.config import load_config
+        slots = best_slots(load_config(), "reel", days=1)
+        print(f"[ok] scheduler slots: {len(slots)} next slots "
+              f"({load_config().timezone})")
     except Exception as e:
         print(f"[MISS] scheduler: {e}")
         ok = False
-    print("=== " + ("ALL GOOD — you're ready to go viral 🚀" if ok else "fix the MISS items above") + " ===")
+    from igskill.config import load_config
+    cfg = load_config()
+    print(f"[ok] state dir ready — {cfg.connected_hint()}")
+    print("=== " + ("ALL GOOD — ready to go viral 🚀" if ok else "fix the MISS items above") + " ===")
     return 0 if ok else 1
 
 
 def main() -> None:
     import argparse
-    p = argparse.ArgumentParser()
+    p = argparse.ArgumentParser(description="zero-config Instagram connection")
     p.add_argument("--selftest", action="store_true")
-    p.add_argument("--login", action="store_true")
+    p.add_argument("--login", action="store_true",
+                   help="session-mode login (username/password, used once)")
+    p.add_argument("--user", help="Instagram username (runtime, not stored)")
+    p.add_argument("--pass", dest="password", help="Instagram password "
+                   "(runtime, used once, NEVER saved to disk)")
     p.add_argument("--code", help="2FA/challenge verification code")
-    p.add_argument("--token", help="Graph API access token (stores in .env)")
+    p.add_argument("--token", help="Graph API token (Business accounts)")
     p.add_argument("--profile", action="store_true")
+    p.add_argument("--set-niche", dest="set_niche")
+    p.add_argument("--set-goal", dest="set_goal")
+    p.add_argument("--set-handle", dest="set_handle",
+                   help="watermark handle, e.g. @myhandle")
     a = p.parse_args()
 
     if a.selftest:
         sys.exit(selftest())
 
-    if a.token:
-        env = Path(__file__).resolve().parent.parent / ".env"
-        lines = env.read_text().splitlines() if env.exists() else []
-        lines = [l for l in lines if not l.startswith("IG_ACCESS_TOKEN=")]
-        lines.append(f"IG_ACCESS_TOKEN={a.token}")
-        env.write_text("\n".join(lines) + "\n")
-        print("[ok] token saved to .env — graph mode active")
+    from igskill.config import load_config, save_profile
 
-    from igskill.config import load_config
-    from igskill.ig_client import get_client
+    if a.token:
+        save_profile({"graph_token": a.token, "mode": "graph"})
+        print("[ok] Graph token saved to .state/profile.json (local only) "
+              "— graph mode active")
+
+    if a.set_niche:
+        save_profile({"niche": a.set_niche})
+        print(f"[ok] niche -> {a.set_niche}")
+    if a.set_goal:
+        save_profile({"goal": a.set_goal})
+        print(f"[ok] goal -> {a.set_goal}")
+    if a.set_handle:
+        save_profile({"watermark": a.set_handle})
+        print(f"[ok] watermark -> {a.set_handle}")
 
     if a.login:
         cfg = load_config()
-        client = get_client(cfg)
+        if not (a.user and a.password):
+            raise SystemExit("login needs --user and --pass "
+                             "(ask the user in chat; never store them)")
+        from igskill.ig_client import SessionClient
+        cfg.ig_username = a.user
+        cfg.ig_password = a.password
+        client = SessionClient(cfg)
         res = client.login(code=a.code)
-        print(f"[ok] logged in (restored: {res['restored']})")
+        save_profile({"username": a.user,
+                      "watermark": f"@{a.user}" if not cfg.watermark else cfg.watermark,
+                      "mode": "session"})
+        print(f"[ok] logged in (restored: {res['restored']}) — session cached, "
+              "password discarded")
+        print("[next] auto-analyzing profile...")
+        try:
+            import subprocess
+            r = subprocess.run([sys.executable, str(Path(__file__).parent / "ig_audit.py")],
+                               capture_output=True, text=True, timeout=180)
+            print(r.stdout)
+            if r.returncode != 0:
+                print(r.stderr[-300:])
+        except Exception as e:
+            print(f"[warn] auto-audit skipped: {e}")
 
-    if a.profile or (a.login and not a.selftest):
+    if a.profile:
         cfg = load_config()
-        import json
-        print(json.dumps(get_client(cfg).profile(), indent=2, ensure_ascii=False))
+        import igskill.ig_client as igc
+        try:
+            print(json.dumps(igc.get_client(cfg).profile(), indent=2,
+                             ensure_ascii=False))
+        except SystemExit as e:
+            print(e)
 
-    if not any([a.selftest, a.login, a.token, a.profile]):
+    if not any([a.selftest, a.login, a.token, a.profile, a.set_niche,
+                a.set_goal, a.set_handle]):
         p.print_help()
 
 

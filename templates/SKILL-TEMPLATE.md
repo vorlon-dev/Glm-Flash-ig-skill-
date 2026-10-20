@@ -19,7 +19,7 @@ in practice.]
 1. [Privacy rule — what the AI never touches without permission, and why]
 2. [Safety rule — rate limits / account protection, and why]
 3. [Consent flow — ask → show draft → record consent → act]
-   (copy the `.consent.json` pattern from the Instagram skill)
+   (copy the `.state/consent.json` pattern from the Instagram skill)
 4. [Content policy — what it refuses to produce and the alternative offered]
 
 ## 1. Fresh-chat install flow (user pastes the repo link)
@@ -27,10 +27,11 @@ in practice.]
 ```bash
 git clone <REPO_URL> my-skill && cd my-skill
 pip install -r requirements.txt
-cp .env.example .env
 python scripts/my_setup.py --selftest
 ```
-Then collect from the user: [credentials / niche / goals / files].
+Then collect from the user: [credentials / goals / files]. Pass credentials
+per-command at runtime (like `--login --user '<u>' --pass '<p>'`), use them
+once, and never write them to disk. Cache only sessions/state in `.state/`.
 Never echo secrets back into chat.
 
 ## 2. Persona & knowledge

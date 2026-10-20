@@ -1,10 +1,11 @@
 """Autopilot — one prompt -> a full week of planned, edited, scheduled posts.
 
 Flow:
-  1. IDEAS   — agent JSON file, Z.ai GLM API, or offline templates
+  1. IDEAS   — agent-written JSON file or offline templates (the agent IS the
+               content engine; no API keys exist in this skill)
   2. MEDIA   — use user's raw folder (round-robin), else build text-card reels
   3. EDIT    — full reel pipeline (9:16, subs-ready, watermark, compress)
-  4. COPY    — captions/hashtags (agent-written or API)
+  4. COPY    — captions/hashtags written by the agent
   5. SCHEDULE— best slots per timezone, daily cap respected
 
 Consent ladder (Constitution rule):
@@ -19,7 +20,7 @@ from datetime import datetime
 from pathlib import Path
 
 from .config import Config
-from .content_gen import ContentPlan, generate_content, generate_week_plan, offline_ideas
+from .content_gen import ContentPlan, offline_ideas
 from .privacy import has_consent, require_consent
 
 PLAN_FILE = "autopilot_plan.json"
@@ -94,14 +95,19 @@ def make_text_card(title: str, subtitle: str, out: Path, seed: int | None = None
 # ------------------------------------------------------------------ plan --
 
 def build_plan(cfg: Config, niche: str, count: int = 7, *,
-               ideas_file: str | None = None, use_api: bool = False,
+               ideas_file: str | None = None,
                media_dir: str | None = None) -> Path:
-    """Create autopilot_plan.json — the week strategy. Does NOT post anything."""
+    """Create autopilot_plan.json — the week strategy. Does NOT post anything.
+
+    ideas_file: the AGENT writes ideas JSON itself (it's the content engine):
+        [{"title": str, "format": "reel|carousel|photo", "hook": str,
+          "beats": [str]}]
+    Without ideas_file, offline templates provide starter ideas the agent
+    should rewrite before showing the plan to the user.
+    """
     if ideas_file:
         ideas = json.loads(Path(ideas_file).read_text(encoding="utf-8"))
         ideas = ideas.get("ideas", ideas) if isinstance(ideas, dict) else ideas
-    elif use_api and cfg.zai_api_key:
-        ideas = generate_week_plan(cfg, niche, count)
     else:
         ideas = offline_ideas(niche, count)
     ideas = ideas[:count]
@@ -133,11 +139,6 @@ def build_plan(cfg: Config, niche: str, count: int = 7, *,
         content = {"caption": f"{title}\n\n{' '.join(beats[:2])}"
                               f"\n\nWhich one hits? Comment 👇",
                    "hashtags": [], "post_type": "reel" if fmt == "reel" else "photo"}
-        if use_api and cfg.zai_api_key:
-            try:
-                content = generate_content(cfg, niche, title, content["post_type"])
-            except Exception as e:
-                print(f"[autopilot] API caption failed for #{i}: {e} — using draft")
         item["content"] = content
         plan_items.append(item)
 
@@ -145,6 +146,7 @@ def build_plan(cfg: Config, niche: str, count: int = 7, *,
         "created": datetime.now().isoformat(timespec="seconds"),
         "niche": niche, "count": len(plan_items),
         "status": "awaiting_user_approval",   # Constitution: first plan needs a yes
+        "_note": "agent: rewrite captions/hashtags in items[].content before approval",
         "items": plan_items,
     }
     out = cfg.workdir / PLAN_FILE

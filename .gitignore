@@ -1,4 +1,5 @@
 # secrets & state — NEVER commit these
+.state/
 .env
 .ig_session.json
 .consent.json

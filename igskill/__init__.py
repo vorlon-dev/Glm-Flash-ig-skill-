@@ -2,9 +2,9 @@
 Glm-Flash-ig-skill — AI Instagram Viral Manager toolkit.
 
 Modules:
-    config      — .env / settings loading + safety caps
+    config      — runtime state + safety caps (zero-config, no .env)
     privacy     — consent guardrails (DM access requires permission)
-    content_gen — viral captions/hashtags/ideas (agent JSON or Z.ai GLM API)
+    content_gen — viral captions/hashtags/ideas (the agent writes them — no API keys)
     media       — ffmpeg editing pipeline (reels, subtitles, music, watermark)
     ig_client   — Instagram adapter: Graph API (official) + session (instagrapi)
     scheduler   — SQLite queue + best-time slots

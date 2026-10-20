@@ -1,7 +1,8 @@
 # INSTALL.md — for the AI agent performing the install
 
 > A user just pasted this repo link in a fresh chat. Follow exactly these
-> steps, then continue with SKILL.md §1.
+> steps, then continue with SKILL.md §1. No .env, no API keys — this repo is
+> universal and zero-config.
 
 ## 1. Clone & bootstrap
 
@@ -9,7 +10,6 @@
 git clone <REPO_URL> glm-ig-skill
 cd glm-ig-skill
 pip install -r requirements.txt
-cp .env.example .env
 ```
 
 If `ffmpeg` is missing (`ffmpeg -version` fails), install it first:
@@ -26,37 +26,47 @@ All lines should be `[ok]`. Fix any `[MISS]` before continuing.
 
 ## 3. Collect from the user (one friendly message)
 
-- Instagram **username + password** (session mode) — or a **Graph API
-  token** if they run a Business account (official, safest)
-- Their **niche** (fitness / food / travel / fashion / tech / music / comedy / other)
-- Their **goal** (followers, sales, brand) and country/timezone
-- Optional: a folder of raw media to work with
+- Instagram **username + password** — that's the required part.
+- Optional: their goal (followers / sales / brand) and country — otherwise
+  you will auto-detect the niche and timezone right after login.
 
-## 4. Connect
+## 4. Connect (credentials are runtime-only, never stored)
 
 ```bash
-python scripts/ig_setup.py --login          # session mode
-python scripts/ig_setup.py --token <TOKEN>  # graph mode
-python scripts/ig_setup.py --profile        # verify who is connected
+python scripts/ig_setup.py --login --user '<username>' --pass '<password>'
 ```
-If Instagram sends a login challenge: ask the user for the 6-digit code and
-re-run with `--code 123456`. Never try to bypass challenges.
+- If Instagram sends a challenge: ask the user for the 6-digit code and re-run
+  with `--code 123456`. Never bypass challenges.
+- The password is used **once** by this command and never saved anywhere.
+- The session is cached in `.state/session.json` for passwordless reuse.
 
-## 5. Configure
+Business accounts (optional, safest): `python scripts/ig_setup.py --token <TOKEN>`
 
-Write `.env` with: NICHE, TIMEZONE, WATERMARK (their @handle), MAX_POSTS_PER_DAY
-(default 3, hard cap 5). Leave ZAI_API_KEY empty — in agent mode the agent
-writes captions itself; no API key is needed.
+## 5. Auto-analyze (happens automatically after login)
 
-## 6. Deliver
+`ig_setup.py --login` chains `ig_audit.py`, which prints a JSON briefing:
+profile stats, engagement rate, format mix, posting frequency. As the agent:
 
-Produce the **First Viral Report** (SKILL.md §6) in chat, then generate the
-week-1 autopilot plan (`python scripts/ig_autopilot.py plan --niche <niche>`)
-and show it for approval. Do not post anything before approval.
+1. Read the briefing and **infer the niche** from bio/captions/content mix.
+2. Confirm with the user in one line, or ask if ambiguous:
+   `python scripts/ig_setup.py --set-niche "street food" --set-goal followers`
+3. Deliver the **First Viral Report** (SKILL.md §6) in chat.
+
+## 6. Then run their account
+
+Generate the week-1 autopilot plan (you write the ideas — you're the content
+engine), show it for approval, and never post before approval:
+
+```bash
+python scripts/ig_autopilot.py plan --niche "<niche>" --ideas my_ideas.json
+# user approves in chat ->
+python scripts/ig_autopilot.py approve && python scripts/ig_autopilot.py run
+```
 
 ## Privacy briefing (tell the user, verbatim or in your words)
 
 - The skill never opens DMs or notifications unless you explicitly allow it
 - Any reply to DMs/comments is drafted and shown to you before sending
-- Consent is stored in `.consent.json` and revocable any time
-- Credentials/session files stay on this machine and are git-ignored
+- Consent is recorded in `.state/consent.json` and revocable any time
+- Your password is used once at login and never stored on disk — only the
+  session cookie is cached (local, git-ignored)

@@ -2,9 +2,10 @@
 
 **An AI-operated Instagram growth manager for z.ai GLM.** The user links their
 Instagram in a fresh chat, and the agent becomes their viral influencer:
-strategy, editing, captions, hashtags, posting, scheduling, analytics — all
-handled by AI. Privacy-first by design: DMs and chats are **never** touched
-without explicit permission.
+profile & niche auto-analysis, strategy, editing, captions, hashtags, posting,
+scheduling, analytics — all handled by AI. **Zero API keys, zero config files** —
+the repo is universal. Privacy-first by design: DMs and chats are **never**
+touched without explicit permission.
 
 [हिंदी-English version → HINGLISH-README.md](HINGLISH-README.md)
 
@@ -13,16 +14,18 @@ without explicit permission.
 ```
 User (fresh chat): "https://github.com/vorlon-dev/Glm-Flash-ig-skill- install this"
         ↓
-Agent clones the repo, self-tests, asks for IG id + pass + niche
+Agent clones the repo, self-tests, asks for IG id + pass
         ↓
-User: "@myhandle / street food / India"
+User: "@myhandle / mypass123"
         ↓
-Agent: audit → week-1 viral plan → edits media (ffmpeg) → writes hooks,
+Agent logs in (password used once, never stored) → AUTO profile + niche analysis
+        ↓
+First Viral Report: audit → week-1 plan → edits media (ffmpeg) → writes hooks,
 captions, hashtags → posts/schedules at best times → tracks what worked
 ```
 
-No GLM key needed for the user: in agent mode **the AI writes the content
-itself**. (Optional `ZAI_API_KEY` only unlocks `--use-api` generation.)
+No GLM key, no OpenAI key, no .env — **the AI agent writes all content
+itself**. The repo is universal: paste, install, connect, go.
 
 ## Features
 
@@ -40,10 +43,14 @@ itself**. (Optional `ZAI_API_KEY` only unlocks `--use-api` generation.)
 
 | | **session** (default) | **graph** (official) |
 |---|---|---|
-| Needs | username + password | Meta app token + Business account |
+| Needs | username + password (once, in chat) | Meta app token + Business account |
 | Setup | seconds | ~15 min on Meta portal |
 | Risk | small (unofficial API) | none |
 | Feature scope | everything | publish + insights |
+
+Credentials are passed **per-command at runtime** — the password is used once
+at login and never written to disk. The session cookie is cached in
+`.state/` (local, git-ignored) for passwordless reuse.
 
 ## Quickstart (human-run)
 
@@ -51,9 +58,11 @@ itself**. (Optional `ZAI_API_KEY` only unlocks `--use-api` generation.)
 git clone https://github.com/vorlon-dev/Glm-Flash-ig-skill-.git
 cd Glm-Flash-ig-skill
 pip install -r requirements.txt        # + system ffmpeg
-cp .env.example .env                   # fill IG creds + NICHE + TIMEZONE
 python scripts/ig_setup.py --selftest
-python scripts/ig_setup.py --login
+
+# connect — password used once, never stored (session cached for reuse)
+python scripts/ig_setup.py --login --user '<you>' --pass '<secret>'
+# → auto-analyzes profile + niche and prints the audit briefing
 
 # post a reel: auto 9:16 + subs + music + watermark + compress + post
 python scripts/ig_post.py reel --media clip.mp4 \
@@ -61,7 +70,7 @@ python scripts/ig_post.py reel --media clip.mp4 \
   --tags "#streetfood,#foodreels" --subs subs.srt --music bgm.mp3
 
 # week on autopilot (plan → approve → run)
-python scripts/ig_autopilot.py plan --niche "street food"
+python scripts/ig_autopilot.py plan --niche "street food" --ideas ideas.json
 python scripts/ig_autopilot.py approve && python scripts/ig_autopilot.py run
 
 # dashboard
@@ -72,7 +81,8 @@ python scripts/ig_server.py            # http://127.0.0.1:8790
 
 | Script | Purpose |
 |---|---|
-| `ig_setup.py` | `--selftest` · `--login [--code N]` · `--token T` · `--profile` |
+| `ig_setup.py` | `--selftest` · `--login --user U --pass P [--code N]` · `--token T` · `--profile` · `--set-niche/--set-goal/--set-handle` |
+| `ig_audit.py` | auto profile + niche + engagement analysis (JSON briefing for the agent) |
 | `ig_post.py` | edit + post `photo/reel/story/video` (or `--queue "YYYY-MM-DD HH:MM"`) |
 | `ig_edit.py` | `reel-ify` `post-ify` `subtitles` `music` `beat-cut` `slideshow` `thumbnail` `pipeline` |
 | `ig_schedule.py` | `slots` `add` `list` `run-due` `cancel` |
@@ -84,9 +94,10 @@ python scripts/ig_server.py            # http://127.0.0.1:8790
 
 - hard cap **5 posts/day** (default 3) + randomized 30–120 s action delays
 - login challenges surface to the user — never bypassed
-- consent file `.consent.json` gates DMs/comments/replies/full-autopilot
+- **password used once at login, never stored on disk** (session cookie cached locally)
+- consent file `.state/consent.json` gates DMs/comments/replies/full-autopilot
 - no follow-bots, no mass actions, no credential exfiltration
-- everything local: `.env`, session, consent, SQLite are git-ignored
+- everything local: `.state/`, workspace, SQLite are git-ignored
 
 ## Build your own skill
 
