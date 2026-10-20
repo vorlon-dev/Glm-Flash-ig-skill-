@@ -9,8 +9,12 @@
 ```bash
 git clone <REPO_URL> glm-ig-skill
 cd glm-ig-skill
-pip install -r requirements.txt
+python -m pip install -r requirements.txt
 ```
+
+⚠️ Use `python -m pip`, never bare `pip` — many sandboxes run a venv whose
+Python differs from the one `pip` points to; bare pip silently installs into
+the wrong environment and imports still fail afterward.
 
 If `ffmpeg` is missing (`ffmpeg -version` fails), install it first:
 - Ubuntu/Debian: `sudo apt install -y ffmpeg`
@@ -40,7 +44,26 @@ python scripts/ig_setup.py --login --user '<username>' --pass '<password>'
 - The password is used **once** by this command and never saved anywhere.
 - The session is cached in `.state/session.json` for passwordless reuse.
 
+### If login is blocked with HTTP 429 / "please wait a few minutes"
+
+The server IP (a cloud datacenter IP) is blocked by Instagram — **this is not
+a credentials problem**, and retrying repeatedly will flag the account. Try at
+most TWICE, then pick one:
+
+- **Residential/mobile proxy (fastest):** ask the user for a proxy URL, then
+  ```bash
+  python scripts/ig_setup.py --login --user '<u>' --pass '<p>' \
+         --proxy 'http://user:pass@host:port'
+  ```
+  It is saved in `.state/` (local, git-ignored) and used for every later
+  command automatically.
+- **Official Graph API (safest, Business accounts):**
+  `python scripts/ig_setup.py --token <TOKEN>`
+- **Wait 30–60 min** and retry once.
+
 Business accounts (optional, safest): `python scripts/ig_setup.py --token <TOKEN>`
+
+Connection summary anytime: `python scripts/ig_setup.py --status`
 
 ## 5. Auto-analyze (happens automatically after login)
 
@@ -70,3 +93,5 @@ python scripts/ig_autopilot.py approve && python scripts/ig_autopilot.py run
 - Consent is recorded in `.state/consent.json` and revocable any time
 - Your password is used once at login and never stored on disk — only the
   session cookie is cached (local, git-ignored)
+- If you provide a proxy, it is also stored locally only (and displayed
+  masked as `***@host:port` in status output)

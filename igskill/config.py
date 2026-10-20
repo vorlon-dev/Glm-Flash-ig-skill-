@@ -67,6 +67,11 @@ class Config:
     ig_access_token: str = field(default_factory=lambda: load_profile().get("graph_token", ""))
     ig_business_id: str = field(default_factory=lambda: load_profile().get("business_id", ""))
 
+    # --- network (optional). Residential/mobile proxy for datacenter IPs that
+    # Instagram blocks. Lives in .state/profile.json — machine-local,
+    # git-ignored, never committed. Format: http://user:pass@host:port
+    proxy: str = field(default_factory=lambda: load_profile().get("proxy", ""))
+
     # --- profile facts (auto-filled by ig_audit.py, overridable via ig_setup.py)
     niche: str = field(default_factory=lambda: load_profile().get("niche", "general"))
     watermark: str = field(default_factory=lambda: load_profile().get("watermark", ""))
@@ -114,10 +119,15 @@ class Config:
 
     def connected_hint(self) -> str:
         if self.resolved_mode == "graph":
-            return "graph token loaded from .state/profile.json"
-        if self.has_session:
-            return "session file found — passwordless re-login available"
-        return "not connected yet — run: python scripts/ig_setup.py --login --user <u> --pass <p>"
+            base = "graph token loaded from .state/profile.json"
+        elif self.has_session:
+            base = "session file found — passwordless re-login available"
+        else:
+            base = ("not connected yet — run: python scripts/ig_setup.py "
+                    "--login --user <u> --pass <p>")
+        if self.proxy:
+            base += " · proxy: ON"
+        return base
 
     def require_credentials(self) -> None:
         """Raise a clear, agent-actionable error when an action needs login."""

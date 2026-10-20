@@ -57,12 +57,17 @@ at login and never written to disk. The session cookie is cached in
 ```bash
 git clone https://github.com/vorlon-dev/Glm-Flash-ig-skill-.git
 cd Glm-Flash-ig-skill
-pip install -r requirements.txt        # + system ffmpeg
+python -m pip install -r requirements.txt   # + system ffmpeg
 python scripts/ig_setup.py --selftest
 
 # connect — password used once, never stored (session cached for reuse)
 python scripts/ig_setup.py --login --user '<you>' --pass '<secret>'
 # → auto-analyzes profile + niche and prints the audit briefing
+#
+# cloud server + HTTP 429 on login? Instagram blocks datacenter IPs.
+# Fix: add a residential proxy — it's saved locally & reused:
+# python scripts/ig_setup.py --login --user '<you>' --pass '<secret>' \
+#        --proxy 'http://user:pass@host:port'
 
 # post a reel: auto 9:16 + subs + music + watermark + compress + post
 python scripts/ig_post.py reel --media clip.mp4 \
@@ -81,7 +86,7 @@ python scripts/ig_server.py            # http://127.0.0.1:8790
 
 | Script | Purpose |
 |---|---|
-| `ig_setup.py` | `--selftest` · `--login --user U --pass P [--code N]` · `--token T` · `--profile` · `--set-niche/--set-goal/--set-handle` |
+| `ig_setup.py` | `--selftest` · `--login --user U --pass P [--code N] [--proxy URL]` · `--token T` · `--status` · `--profile` · `--set-niche/--set-goal/--set-handle` |
 | `ig_audit.py` | auto profile + niche + engagement analysis (JSON briefing for the agent) |
 | `ig_post.py` | edit + post `photo/reel/story/video` (or `--queue "YYYY-MM-DD HH:MM"`) |
 | `ig_edit.py` | `reel-ify` `post-ify` `subtitles` `music` `beat-cut` `slideshow` `thumbnail` `pipeline` |
@@ -94,6 +99,7 @@ python scripts/ig_server.py            # http://127.0.0.1:8790
 
 - hard cap **5 posts/day** (default 3) + randomized 30–120 s action delays
 - login challenges surface to the user — never bypassed
+- login errors auto-classified: rate-limit (429/IP) vs challenge vs bad password — with a ready fix for each
 - **password used once at login, never stored on disk** (session cookie cached locally)
 - consent file `.state/consent.json` gates DMs/comments/replies/full-autopilot
 - no follow-bots, no mass actions, no credential exfiltration

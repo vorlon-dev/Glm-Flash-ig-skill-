@@ -5,19 +5,38 @@ Everything is runtime-args based. No .env. Universal repo.
 
   python scripts/ig_setup.py --selftest
   python scripts/ig_setup.py --login --user '<u>' --pass '<p>' [--code 123456]
+  python scripts/ig_setup.py --login --user '<u>' --pass '<p>' \
+         --proxy 'http://user:pass@host:port'      # datacenter-IP fix
   python scripts/ig_setup.py --token <GRAPH_TOKEN>        # Business accounts
+  python scripts/ig_setup.py --status                     # connection summary
   python scripts/ig_setup.py --profile
   python scripts/ig_setup.py --set-niche "street food" --set-goal followers
 
 After a successful --login, the profile is auto-analyzed (niche, engagement,
 best formats) and .state/profile.json is updated. The password is used ONCE
-for login and is never written to disk.
+for login and is never written to disk. A --proxy, once set, is remembered
+locally (machine-local, git-ignored) and used for every later command.
 """
 import json
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+
+def mask_proxy(url: str) -> str:
+    """Hide proxy credentials for display: http://***@host:port"""
+    if not url:
+        return ""
+    try:
+        from urllib.parse import urlparse, urlunparse
+        p = urlparse(url)
+        netloc = p.netloc
+        if "@" in netloc:
+            netloc = "***@" + netloc.rsplit("@", 1)[1]
+        return urlunparse((p.scheme, netloc, p.path, "", "", ""))
+    except Exception:
+        return "***"
 
 
 def selftest() -> int:
@@ -65,6 +84,34 @@ def selftest() -> int:
     return 0 if ok else 1
 
 
+def status() -> None:
+    from igskill.config import load_config
+    cfg = load_config()
+    mode = cfg.resolved_mode
+    if mode == "graph":
+        connected = bool(cfg.ig_access_token)
+    else:
+        connected = cfg.has_session
+    sess_age = ""
+    if cfg.has_session:
+        age = max(0, int(__import__("time").time()
+                         - cfg.session_file.stat().st_mtime))
+        sess_age = f" (cached {age // 3600}h{(age % 3600) // 60}m ago)"
+    info = {
+        "mode": mode,
+        "connected": connected,
+        "username": cfg.ig_username or "(unknown)",
+        "proxy": mask_proxy(cfg.proxy) if cfg.proxy else "off",
+        "session_file": f"yes{sess_age}" if cfg.has_session else "no",
+        "niche": cfg.niche,
+        "goal": cfg.goal or "(not set)",
+        "timezone": cfg.timezone,
+        "max_posts_per_day": cfg.max_posts_per_day,
+        "hint": cfg.connected_hint(),
+    }
+    print(json.dumps(info, indent=2, ensure_ascii=False))
+
+
 def main() -> None:
     import argparse
     p = argparse.ArgumentParser(description="zero-config Instagram connection")
@@ -76,6 +123,14 @@ def main() -> None:
                    "(runtime, used once, NEVER saved to disk)")
     p.add_argument("--code", help="2FA/challenge verification code")
     p.add_argument("--token", help="Graph API token (Business accounts)")
+    p.add_argument("--proxy", metavar="URL",
+                   help="residential/mobile proxy 'http://user:pass@host:port' "
+                        "— routes login + session traffic (fixes datacenter-IP "
+                        "blocks); saved locally for later commands")
+    p.add_argument("--clear-proxy", action="store_true",
+                   help="remove the stored proxy")
+    p.add_argument("--status", action="store_true",
+                   help="print connection summary (mode/session/proxy/niche)")
     p.add_argument("--profile", action="store_true")
     p.add_argument("--set-niche", dest="set_niche")
     p.add_argument("--set-goal", dest="set_goal")
@@ -85,8 +140,20 @@ def main() -> None:
 
     if a.selftest:
         sys.exit(selftest())
+    if a.status:
+        status()
+        return
 
     from igskill.config import load_config, save_profile
+
+    if a.clear_proxy:
+        save_profile({"proxy": ""})
+        print("[ok] proxy cleared")
+
+    if a.proxy:
+        save_profile({"proxy": a.proxy})
+        print(f"[ok] proxy saved locally: {mask_proxy(a.proxy)} "
+              "— it will be used for login and all session commands")
 
     if a.token:
         save_profile({"graph_token": a.token, "mode": "graph"})
@@ -111,8 +178,14 @@ def main() -> None:
         from igskill.ig_client import SessionClient
         cfg.ig_username = a.user
         cfg.ig_password = a.password
-        client = SessionClient(cfg)
-        res = client.login(code=a.code)
+        if a.proxy:
+            cfg.proxy = a.proxy
+        try:
+            client = SessionClient(cfg)
+            res = client.login(code=a.code)
+        except Exception as e:
+            # IGError messages are already agent-actionable; show them raw.
+            raise SystemExit(str(e)) from e
         save_profile({"username": a.user,
                       "watermark": f"@{a.user}" if not cfg.watermark else cfg.watermark,
                       "mode": "session"})
@@ -139,7 +212,7 @@ def main() -> None:
             print(e)
 
     if not any([a.selftest, a.login, a.token, a.profile, a.set_niche,
-                a.set_goal, a.set_handle]):
+                a.set_goal, a.set_handle, a.proxy, a.clear_proxy, a.status]):
         p.print_help()
 
 
